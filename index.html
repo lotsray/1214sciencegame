@@ -2,6 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <!-- ✅ 手機／平板顯示比例 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>浩琛星軌接力賽</title>
   <style>
     body {
@@ -17,12 +19,17 @@
 
     h1 {
       margin: 16px 0 8px;
+      text-align: center;
     }
 
     #nav {
       display: flex;
       gap: 8px;
       margin-bottom: 12px;
+      flex-wrap: wrap;           /* ✅ 窄螢幕可以自動換行 */
+      justify-content: center;
+      padding: 0 8px;
+      box-sizing: border-box;
     }
 
     #nav button {
@@ -32,6 +39,7 @@
       background: #111827;
       color: #e5e7eb;
       cursor: pointer;
+      font-size: 14px;
     }
 
     #nav button.active {
@@ -78,12 +86,16 @@
       width: 180px;
     }
 
+    /* ✅ Canvas 寬度自適應，最大 800px，適合手機 */
     canvas {
       background: #020617;
       border-radius: 8px;
       border: 1px solid #1f2937;
       display: block;
       margin: 0 auto;
+      width: 100%;
+      max-width: 800px;
+      height: auto;
     }
 
     .status {
@@ -105,6 +117,7 @@
       background: #0f172a;
       color: #e5e7eb;
       cursor: pointer;
+      font-size: 14px;
     }
 
     .btn-primary {
@@ -156,6 +169,35 @@
 
     .hint-btn:hover {
       background: #1f2937;
+    }
+
+    /* ✅ 手機／平板 RWD：控件排列、文字大小調整 */
+    @media (max-width: 768px) {
+      body {
+        padding: 0 4px;
+      }
+      .game-panel {
+        padding: 10px 10px 14px;
+      }
+      h2 {
+        font-size: 16px;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .controls input[type="range"] {
+        width: 100%;
+        max-width: 260px;
+      }
+      .btn, #nav button {
+        font-size: 15px;
+        padding: 8px 14px;
+      }
+      .power-bar-wrapper {
+        width: 100%;
+        max-width: 260px;
+      }
     }
   </style>
 </head>
@@ -576,16 +618,23 @@
         status2.textContent = '滑動中…看看會停在哪裡。';
       }
 
+      // 滑鼠長按
       pushBtn.addEventListener('mousedown', startCharge);
       pushBtn.addEventListener('mouseup', stopCharge);
       pushBtn.addEventListener('mouseleave', stopCharge);
 
+      // 觸控長按
       pushBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         startCharge();
       }, { passive: false });
 
       pushBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopCharge();
+      }, { passive: false });
+
+      pushBtn.addEventListener('touchcancel', (e) => {
         e.preventDefault();
         stopCharge();
       }, { passive: false });
@@ -632,6 +681,7 @@
       let starAlpha = 0;
       let lastTime = null;
 
+      // ✅ 修正為「考慮 CSS 縮放」的座標換算，手機縮小後仍準確
       function toCanvasCoords(evt) {
         const rect = canvas.getBoundingClientRect();
         let clientX, clientY;
@@ -642,9 +692,16 @@
           clientX = evt.clientX;
           clientY = evt.clientY;
         }
+
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
         return {
-          x: clientX - rect.left,
-          y: clientY - rect.top
+          x: x * scaleX,
+          y: y * scaleY
         };
       }
 
@@ -855,6 +912,10 @@
         handleMove(e);
       }, { passive: false });
       window.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleUp();
+      }, { passive: false });
+      window.addEventListener('touchcancel', (e) => {
         e.preventDefault();
         handleUp();
       }, { passive: false });
