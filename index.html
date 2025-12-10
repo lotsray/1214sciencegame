@@ -2,8 +2,9 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <!-- 手機／平板顯示比例 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>浩琛星軌接力賽</title>
+  <title>浩琛星軌接力賽 v1.0.1</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -85,6 +86,7 @@
       width: 180px;
     }
 
+    /* Canvas 寬度自適應，最大 800px，適合手機 */
     canvas {
       background: #020617;
       border-radius: 8px;
@@ -144,6 +146,7 @@
       transition: width 0.05s linear;
     }
 
+    /* 右上角提示按鈕樣式 */
     .hint-btn {
       position: absolute;
       top: 10px;
@@ -168,6 +171,7 @@
       background: #1f2937;
     }
 
+    /* 手機／平板 RWD：控件排列、文字大小調整 */
     @media (max-width: 768px) {
       body {
         padding: 0 4px;
@@ -208,7 +212,7 @@
   <!-- 第一關：氣動發射 -->
   <div id="game1" class="game-panel active">
     <button id="hint1" class="hint-btn" title="提示">💡</button>
-    <h2>第一關：氣動發射</h2>
+    <h2>第一關：氣動發射（角度 + 氣壓 → 太空紙飛機）</h2>
     <canvas id="canvas1" width="800" height="300"></canvas>
     <div class="controls">
       <label>
@@ -230,7 +234,7 @@
   <!-- 第二關：動能傳遞 -->
   <div id="game2" class="game-panel">
     <button id="hint2" class="hint-btn" title="提示">💡</button>
-    <h2>第二關：動能傳遞</h2>
+    <h2>第二關：動能傳遞（力道控制 → 太空滑車，一次定勝負）</h2>
     <canvas id="canvas2" width="800" height="200"></canvas>
     <div class="controls">
       <button id="pushBtn" class="btn btn-primary">按住補充動能</button>
@@ -249,7 +253,7 @@
   <!-- 第三關：彈力點燈 -->
   <div id="game3" class="game-panel">
     <button id="hint3" class="hint-btn" title="提示">💡</button>
-    <h2>第三關：彈力點燈</h2>
+    <h2>第三關：彈力點燈（拉力位能 → 啟動星際天象儀）</h2>
     <canvas id="canvas3" width="800" height="300"></canvas>
     <div class="controls">
       <span>按住能量球，往後拉再放開發射，打中開關點亮星空。</span>
@@ -260,7 +264,28 @@
 
   <script>
     // ==========================
-    // 共用：星際太空背景（ES5 寫法）
+    // 兼容舊裝置：requestAnimationFrame + Date.now polyfill
+    // ==========================
+    (function() {
+      if (!window.requestAnimationFrame) {
+        window.requestAnimationFrame =
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          function(callback) {
+            return setTimeout(function() {
+              callback((Date.now && Date.now()) || new Date().getTime());
+            }, 16);
+          };
+      }
+      if (!Date.now) {
+        Date.now = function() {
+          return new Date().getTime();
+        };
+      }
+    })();
+
+    // ==========================
+    // 共用：星際太空背景（含 ellipse 相容處理）
     // ==========================
     function drawSpaceBackground(ctx, canvas) {
       var gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -283,20 +308,34 @@
         ctx.fill();
       }
 
+      var hasEllipse = typeof ctx.ellipse === 'function';
+
       ctx.globalAlpha = 0.12;
       ctx.fillStyle = "#4f46e5";
       ctx.beginPath();
-      ctx.ellipse(canvas.width * 0.35, canvas.height * 0.25, 180, 90, 0, 0, Math.PI * 2);
+      if (hasEllipse) {
+        ctx.ellipse(canvas.width * 0.35, canvas.height * 0.25, 180, 90, 0, 0, Math.PI * 2);
+      } else {
+        ctx.arc(canvas.width * 0.35, canvas.height * 0.25, 120, 0, Math.PI * 2);
+      }
       ctx.fill();
 
       ctx.fillStyle = "#ec4899";
       ctx.beginPath();
-      ctx.ellipse(canvas.width * 0.75, canvas.height * 0.65, 160, 80, 0, 0, Math.PI * 2);
+      if (hasEllipse) {
+        ctx.ellipse(canvas.width * 0.75, canvas.height * 0.65, 160, 80, 0, 0, Math.PI * 2);
+      } else {
+        ctx.arc(canvas.width * 0.75, canvas.height * 0.65, 110, 0, Math.PI * 2);
+      }
       ctx.fill();
 
       ctx.fillStyle = "#14b8a6";
       ctx.beginPath();
-      ctx.ellipse(canvas.width * 0.6, canvas.height * 0.2, 120, 60, 0, 0, Math.PI * 2);
+      if (hasEllipse) {
+        ctx.ellipse(canvas.width * 0.6, canvas.height * 0.2, 120, 60, 0, 0, Math.PI * 2);
+      } else {
+        ctx.arc(canvas.width * 0.6, canvas.height * 0.2, 90, 0, Math.PI * 2);
+      }
       ctx.fill();
 
       ctx.globalAlpha = 1;
@@ -628,12 +667,10 @@
         e.preventDefault();
         startCharge();
       }, false);
-
       pushBtn.addEventListener('touchend', function(e) {
         e.preventDefault();
         stopCharge();
       }, false);
-
       pushBtn.addEventListener('touchcancel', function(e) {
         e.preventDefault();
         stopCharge();
@@ -911,4 +948,3 @@
   </script>
 </body>
 </html>
-
