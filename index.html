@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <!-- 手機／平板顯示比例 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>浩琛星軌接力賽 v1.0.1</title>
+  <title>浩琛星軌接力賽 v1.0.2</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -212,7 +212,7 @@
   <!-- 第一關：氣動發射 -->
   <div id="game1" class="game-panel active">
     <button id="hint1" class="hint-btn" title="提示">💡</button>
-    <h2>第一關：氣動發射（角度 + 氣壓 → 太空紙飛機）</h2>
+    <h2>第一關：氣動發射</h2>
     <canvas id="canvas1" width="800" height="300"></canvas>
     <div class="controls">
       <label>
@@ -234,7 +234,7 @@
   <!-- 第二關：動能傳遞 -->
   <div id="game2" class="game-panel">
     <button id="hint2" class="hint-btn" title="提示">💡</button>
-    <h2>第二關：動能傳遞（力道控制 → 太空滑車，一次定勝負）</h2>
+    <h2>第二關：動能傳遞</h2>
     <canvas id="canvas2" width="800" height="200"></canvas>
     <div class="controls">
       <button id="pushBtn" class="btn btn-primary">按住補充動能</button>
@@ -253,7 +253,7 @@
   <!-- 第三關：彈力點燈 -->
   <div id="game3" class="game-panel">
     <button id="hint3" class="hint-btn" title="提示">💡</button>
-    <h2>第三關：彈力點燈（拉力位能 → 啟動星際天象儀）</h2>
+    <h2>第三關：彈力點燈</h2>
     <canvas id="canvas3" width="800" height="300"></canvas>
     <div class="controls">
       <span>按住能量球，往後拉再放開發射，打中開關點亮星空。</span>
@@ -264,7 +264,7 @@
 
   <script>
     // ==========================
-    // 兼容舊裝置：requestAnimationFrame + Date.now polyfill
+    // 兼容：requestAnimationFrame + Date.now polyfill
     // ==========================
     (function() {
       if (!window.requestAnimationFrame) {
@@ -283,6 +283,28 @@
         };
       }
     })();
+
+    // ==========================
+    // 共用：按鈕 click + touchend 綁定
+    // ==========================
+    function addTapClick(element, handler) {
+      if (!element) return;
+      var lastTouchTime = 0;
+
+      element.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        lastTouchTime = Date.now();
+        handler(e);
+      }, false);
+
+      element.addEventListener('click', function(e) {
+        // 避免同一次操作觸發 touchend + click 兩次
+        if (Date.now() - lastTouchTime < 400) {
+          return;
+        }
+        handler(e);
+      }, false);
+    }
 
     // ==========================
     // 共用：星際太空背景（含 ellipse 相容處理）
@@ -342,32 +364,34 @@
     }
 
     // ==========================
-    // 共用：頁籤切換
+    // 共用：頁籤切換（支援點擊 + 輕觸）
     // ==========================
     (function() {
       var navButtons = document.querySelectorAll('#nav button');
       var panels = document.querySelectorAll('.game-panel');
 
-      function onNavClick(btn) {
-        return function() {
-          for (var i = 0; i < navButtons.length; i++) {
-            navButtons[i].classList.remove('active');
+      function switchPanel(btn) {
+        for (var i = 0; i < navButtons.length; i++) {
+          navButtons[i].classList.remove('active');
+        }
+        btn.classList.add('active');
+        var target = btn.getAttribute('data-target');
+        for (var j = 0; j < panels.length; j++) {
+          var p = panels[j];
+          if (p.id === target) {
+            p.classList.add('active');
+          } else {
+            p.classList.remove('active');
           }
-          btn.classList.add('active');
-          var target = btn.getAttribute('data-target');
-          for (var j = 0; j < panels.length; j++) {
-            var p = panels[j];
-            if (p.id === target) {
-              p.classList.add('active');
-            } else {
-              p.classList.remove('active');
-            }
-          }
-        };
+        }
       }
 
       for (var i = 0; i < navButtons.length; i++) {
-        navButtons[i].addEventListener('click', onNavClick(navButtons[i]));
+        (function(btn) {
+          addTapClick(btn, function() {
+            switchPanel(btn);
+          });
+        })(navButtons[i]);
       }
     })();
 
@@ -401,7 +425,7 @@
         powerValue1.textContent = powerSlider.value;
       });
 
-      fireBtn.addEventListener('click', function() {
+      addTapClick(fireBtn, function() {
         var angleDeg = parseFloat(angleSlider.value);
         var power = parseFloat(powerSlider.value);
         var rad = angleDeg * Math.PI / 180;
@@ -417,12 +441,12 @@
         status1.textContent = '發射中…觀察紙飛機的飛行軌跡與圓環位置。';
       });
 
-      resetBtn.addEventListener('click', function() {
+      addTapClick(resetBtn, function() {
         projectile = null;
         status1.textContent = '';
       });
 
-      hintBtn1.addEventListener('click', function() {
+      addTapClick(hintBtn1, function() {
         status1.textContent = '提示：角度大約 40°～50°，氣壓中等偏強，讓紙飛機在圓環高度附近通過。';
       });
 
@@ -648,7 +672,7 @@
         status2.textContent = '滑動中…看看會停在哪裡。';
       }
 
-      // 滑鼠
+      // 滑鼠：按下充能、放開發射
       pushBtn.addEventListener('mousedown', function(e) {
         e.preventDefault();
         startCharge();
@@ -662,7 +686,7 @@
         stopCharge();
       });
 
-      // 觸控
+      // 觸控：按下充能、放開發射
       pushBtn.addEventListener('touchstart', function(e) {
         e.preventDefault();
         startCharge();
@@ -676,7 +700,7 @@
         stopCharge();
       }, false);
 
-      resetBtn.addEventListener('click', function() {
+      addTapClick(resetBtn, function() {
         charging = false;
         clearInterval(chargeTimer);
         power = 0;
@@ -688,7 +712,7 @@
         status2.textContent = '';
       });
 
-      hintBtn2.addEventListener('click', function() {
+      addTapClick(hintBtn2, function() {
         status2.textContent = '提示：先記住一次「滑過頭」和一次「不到」的結果，再嘗試介於兩者之間的力量。';
       });
 
@@ -904,11 +928,7 @@
         status3.textContent = '發射！試試看能不能剛好擊中開關。';
       }
 
-      hintBtn3.addEventListener('click', function() {
-        status3.textContent = '提示：先觀察開關的位置，再從能量球往「相反方向」拉，角度對了再調整拉多遠。';
-      });
-
-      // 滑鼠
+      // 滑鼠拖曳
       canvas.addEventListener('mousedown', function(e) {
         e.preventDefault();
         handleDown(e);
@@ -922,7 +942,7 @@
         handleUp();
       });
 
-      // 觸控
+      // 觸控拖曳
       canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
         handleDown(e);
@@ -940,7 +960,13 @@
         handleUp();
       }, false);
 
-      resetBtn.addEventListener('click', resetGame);
+      addTapClick(resetBtn, function() {
+        resetGame();
+      });
+
+      addTapClick(hintBtn3, function() {
+        status3.textContent = '提示：先觀察開關的位置，再從能量球往「相反方向」拉，角度對了再調整拉多遠。';
+      });
 
       resetGame();
       requestAnimationFrame(loop);
