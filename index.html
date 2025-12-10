@@ -2,7 +2,6 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <!-- ✅ 手機／平板顯示比例 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>浩琛星軌接力賽</title>
   <style>
@@ -26,7 +25,7 @@
       display: flex;
       gap: 8px;
       margin-bottom: 12px;
-      flex-wrap: wrap;           /* ✅ 窄螢幕可以自動換行 */
+      flex-wrap: wrap;
       justify-content: center;
       padding: 0 8px;
       box-sizing: border-box;
@@ -50,7 +49,7 @@
 
     .game-panel {
       display: none;
-      position: relative; /* 讓右上角提示鍵可定位 */
+      position: relative;
       background: #020617;
       padding: 12px 16px 16px;
       border-radius: 12px;
@@ -86,7 +85,6 @@
       width: 180px;
     }
 
-    /* ✅ Canvas 寬度自適應，最大 800px，適合手機 */
     canvas {
       background: #020617;
       border-radius: 8px;
@@ -146,7 +144,6 @@
       transition: width 0.05s linear;
     }
 
-    /* 💡 右上角提示按鈕樣式 */
     .hint-btn {
       position: absolute;
       top: 10px;
@@ -171,7 +168,6 @@
       background: #1f2937;
     }
 
-    /* ✅ 手機／平板 RWD：控件排列、文字大小調整 */
     @media (max-width: 768px) {
       body {
         padding: 0 4px;
@@ -264,31 +260,29 @@
 
   <script>
     // ==========================
-    // 共用：星際太空背景
+    // 共用：星際太空背景（ES5 寫法）
     // ==========================
     function drawSpaceBackground(ctx, canvas) {
-      // 深太空漸層
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      var gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       gradient.addColorStop(0, "#020617");
       gradient.addColorStop(0.5, "#0b1120");
       gradient.addColorStop(1, "#000000");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 星星（閃爍）
-      for (let i = 0; i < 130; i++) {
-        const x = (i * 73) % canvas.width;
-        const y = (i * 41) % canvas.height;
-        const flicker = (Math.sin(Date.now() / 300 + i) + 1) / 2; // 0~1
-        const size = ((i % 3) + 1) * (0.3 + flicker * 0.7);
+      for (var i = 0; i < 130; i++) {
+        var x = (i * 73) % canvas.width;
+        var y = (i * 41) % canvas.height;
+        var flicker = (Math.sin(Date.now() / 300 + i) + 1) / 2;
+        var size = ((i % 3) + 1) * (0.3 + flicker * 0.7);
+        var alpha = 0.2 + flicker * 0.8;
 
-        ctx.fillStyle = `rgba(248,250,252,${0.2 + flicker * 0.8})`;
+        ctx.fillStyle = "rgba(248,250,252," + alpha + ")";
         ctx.beginPath();
         ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 星雲
       ctx.globalAlpha = 0.12;
       ctx.fillStyle = "#4f46e5";
       ctx.beginPath();
@@ -308,95 +302,104 @@
       ctx.globalAlpha = 1;
     }
 
-    // --- 共用：頁籤切換 ---
+    // ==========================
+    // 共用：頁籤切換
+    // ==========================
     (function() {
-      const navButtons = document.querySelectorAll('#nav button');
-      const panels = document.querySelectorAll('.game-panel');
-      navButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          navButtons.forEach(b => b.classList.remove('active'));
+      var navButtons = document.querySelectorAll('#nav button');
+      var panels = document.querySelectorAll('.game-panel');
+
+      function onNavClick(btn) {
+        return function() {
+          for (var i = 0; i < navButtons.length; i++) {
+            navButtons[i].classList.remove('active');
+          }
           btn.classList.add('active');
-          const target = btn.dataset.target;
-          panels.forEach(p => {
-            p.classList.toggle('active', p.id === target);
-          });
-        });
-      });
+          var target = btn.getAttribute('data-target');
+          for (var j = 0; j < panels.length; j++) {
+            var p = panels[j];
+            if (p.id === target) {
+              p.classList.add('active');
+            } else {
+              p.classList.remove('active');
+            }
+          }
+        };
+      }
+
+      for (var i = 0; i < navButtons.length; i++) {
+        navButtons[i].addEventListener('click', onNavClick(navButtons[i]));
+      }
     })();
 
     // ==========================
-    // 第一關：氣動發射（紙飛機）
+    // 第一關：氣動發射
     // ==========================
     (function() {
-      const canvas = document.getElementById('canvas1');
-      const ctx = canvas.getContext('2d');
-      const angleSlider = document.getElementById('angleSlider');
-      const powerSlider = document.getElementById('powerSlider1');
-      const angleValue = document.getElementById('angleValue');
-      const powerValue1 = document.getElementById('powerValue1');
-      const fireBtn = document.getElementById('fireBtn');
-      const resetBtn = document.getElementById('reset1');
-      const status1 = document.getElementById('status1');
-      const hintBtn1 = document.getElementById('hint1');
+      var canvas = document.getElementById('canvas1');
+      var ctx = canvas.getContext('2d');
+      var angleSlider = document.getElementById('angleSlider');
+      var powerSlider = document.getElementById('powerSlider1');
+      var angleValue = document.getElementById('angleValue');
+      var powerValue1 = document.getElementById('powerValue1');
+      var fireBtn = document.getElementById('fireBtn');
+      var resetBtn = document.getElementById('reset1');
+      var status1 = document.getElementById('status1');
+      var hintBtn1 = document.getElementById('hint1');
 
-      const g = 9.8;
-      const origin = { x: 80, y: 240 }; // 發射點
-      const ring = { x: 500, y: 160, rOuter: 30, rInner: 20 };
+      var g = 9.8;
+      var origin = { x: 80, y: 240 };
+      var ring = { x: 500, y: 160, rOuter: 30, rInner: 20 };
 
-      let projectile = null;
-      let lastTime = null;
+      var projectile = null;
+      var lastTime = null;
 
-      angleSlider.addEventListener('input', () => {
+      angleSlider.addEventListener('input', function() {
         angleValue.textContent = angleSlider.value + '°';
       });
 
-      powerSlider.addEventListener('input', () => {
+      powerSlider.addEventListener('input', function() {
         powerValue1.textContent = powerSlider.value;
       });
 
-      fireBtn.addEventListener('click', () => {
-        const angleDeg = parseFloat(angleSlider.value);
-        const power = parseFloat(powerSlider.value);
-        const rad = angleDeg * Math.PI / 180;
-        const v = power * 2.0;   // 比較快
+      fireBtn.addEventListener('click', function() {
+        var angleDeg = parseFloat(angleSlider.value);
+        var power = parseFloat(powerSlider.value);
+        var rad = angleDeg * Math.PI / 180;
+        var v = power * 2.0;
 
         projectile = {
           x: origin.x,
           y: origin.y,
           vx: v * Math.cos(rad),
-          vy: -v * Math.sin(rad), // 往上
+          vy: -v * Math.sin(rad),
           passed: false
         };
         status1.textContent = '發射中…觀察紙飛機的飛行軌跡與圓環位置。';
       });
 
-      resetBtn.addEventListener('click', () => {
+      resetBtn.addEventListener('click', function() {
         projectile = null;
         status1.textContent = '';
       });
 
-      // 💡 第一關提示
-      hintBtn1.addEventListener('click', () => {
+      hintBtn1.addEventListener('click', function() {
         status1.textContent = '提示：角度大約 40°～50°，氣壓中等偏強，讓紙飛機在圓環高度附近通過。';
       });
 
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 星空背景
         drawSpaceBackground(ctx, canvas);
 
-        // 太空平台（地面）
         ctx.fillStyle = '#111827';
         ctx.fillRect(0, origin.y + 5, canvas.width, canvas.height - origin.y - 5);
         ctx.fillStyle = '#1f2937';
         ctx.fillRect(0, origin.y + 5, canvas.width, 8);
 
-        // 發射台（小小太空發射平台）
         ctx.fillStyle = '#9ca3af';
         ctx.fillRect(origin.x - 20, origin.y - 10, 40, 10);
 
-        // 圓環（太空通道）
         ctx.save();
         ctx.translate(ring.x, ring.y);
         ctx.strokeStyle = '#f97316';
@@ -406,25 +409,21 @@
         ctx.stroke();
         ctx.restore();
 
-        // ====== 投射物：紙飛機 ======
         if (projectile) {
-          // 飛行方向角度
-          const angle = Math.atan2(projectile.vy, projectile.vx);
+          var angle = Math.atan2(projectile.vy, projectile.vx);
 
           ctx.save();
           ctx.translate(projectile.x, projectile.y);
           ctx.rotate(angle);
 
-          // 主體三角形紙飛機
           ctx.fillStyle = '#f97316';
           ctx.beginPath();
-          ctx.moveTo(14, 0);   // 機頭
-          ctx.lineTo(-12, -6); // 左後
-          ctx.lineTo(-12, 6);  // 右後
+          ctx.moveTo(14, 0);
+          ctx.lineTo(-12, -6);
+          ctx.lineTo(-12, 6);
           ctx.closePath();
           ctx.fill();
 
-          // 中線
           ctx.strokeStyle = '#fee2e2';
           ctx.lineWidth = 1.2;
           ctx.beginPath();
@@ -443,16 +442,14 @@
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
 
-        // 判斷穿過圓環
-        const dx = projectile.x - ring.x;
-        const dy = projectile.y - ring.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        var dx = projectile.x - ring.x;
+        var dy = projectile.y - ring.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
         if (!projectile.passed && dist >= ring.rInner && dist <= ring.rOuter) {
           projectile.passed = true;
           status1.innerHTML = '<span>成功！</span> 太空紙飛機精準穿過通道 🎉';
         }
 
-        // 落到平台
         if (projectile.y >= origin.y) {
           projectile.y = origin.y;
           if (!projectile.passed) {
@@ -467,9 +464,9 @@
       }
 
       function loop(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        let dt = (timestamp - lastTime) / 1000;
-        if (dt > 0.03) dt = 0.03; // 防止 tab 切換 dt 過大
+        if (lastTime === null) lastTime = timestamp;
+        var dt = (timestamp - lastTime) / 1000;
+        if (dt > 0.03) dt = 0.03;
         lastTime = timestamp;
 
         update(dt);
@@ -482,49 +479,45 @@
     })();
 
     // ==========================
-    // 第二關：動能傳遞（一次定勝負）
+    // 第二關：動能傳遞
     // ==========================
     (function() {
-      const canvas = document.getElementById('canvas2');
-      const ctx = canvas.getContext('2d');
-      const pushBtn = document.getElementById('pushBtn');
-      const resetBtn = document.getElementById('reset2');
-      const powerBar = document.getElementById('powerBar');
-      const powerValue2 = document.getElementById('powerValue2');
-      const status2 = document.getElementById('status2');
-      const hintBtn2 = document.getElementById('hint2');
+      var canvas = document.getElementById('canvas2');
+      var ctx = canvas.getContext('2d');
+      var pushBtn = document.getElementById('pushBtn');
+      var resetBtn = document.getElementById('reset2');
+      var powerBar = document.getElementById('powerBar');
+      var powerValue2 = document.getElementById('powerValue2');
+      var status2 = document.getElementById('status2');
+      var hintBtn2 = document.getElementById('hint2');
 
-      const track = { x: 50, y: 120, width: 700 };
-      const targetZone = { start: 450, end: 530 };
+      var track = { x: 50, y: 120, width: 700 };
+      var targetZone = { start: 450, end: 530 };
 
-      let cart = { x: track.x, y: track.y - 15 };
-      let charging = false;
-      let power = 0;
-      let chargeTimer = null;
+      var cart = { x: track.x, y: track.y - 15 };
+      var charging = false;
+      var power = 0;
+      var chargeTimer = null;
 
-      const scale = 6; // finalX = track.x + power * scale
+      var scale = 6;
+      var isSliding = false;
+      var slideStartX = track.x;
+      var slideTargetX = track.x;
+      var slideTime = 0;
+      var slideDuration = 0.8;
 
-      let isSliding = false;
-      let slideStartX = track.x;
-      let slideTargetX = track.x;
-      let slideTime = 0;
-      const slideDuration = 0.8; // 秒
-
-      let lastTime = null;
+      var lastTime = null;
 
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 星空背景
         drawSpaceBackground(ctx, canvas);
 
-        // 太空軌道平台
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, track.y + 25, canvas.width, canvas.height - track.y - 25);
         ctx.fillStyle = '#1f2937';
         ctx.fillRect(track.x, track.y - 4, track.width, 8);
 
-        // 軌道邊線
         ctx.strokeStyle = '#4b5563';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -532,7 +525,6 @@
         ctx.lineTo(track.x + track.width, track.y);
         ctx.stroke();
 
-        // 目標區（發光區段）
         ctx.fillStyle = 'rgba(250,204,21,0.25)';
         ctx.fillRect(targetZone.start, track.y - 20, targetZone.end - targetZone.start, 40);
         ctx.strokeStyle = '#facc15';
@@ -541,7 +533,6 @@
         ctx.fillStyle = '#e5e7eb';
         ctx.fillText('目標區', targetZone.start + 10, track.y - 25);
 
-        // 太空滑車
         ctx.fillStyle = '#38bdf8';
         ctx.fillRect(cart.x - 20, cart.y - 15, 40, 30);
         ctx.fillStyle = '#0f172a';
@@ -554,13 +545,13 @@
       function update(dt) {
         if (isSliding) {
           slideTime += dt;
-          const t = Math.min(slideTime / slideDuration, 1);
-          const ease = 1 - Math.pow(1 - t, 2); // ease-out
+          var t = Math.min(slideTime / slideDuration, 1);
+          var ease = 1 - Math.pow(1 - t, 2);
           cart.x = slideStartX + (slideTargetX - slideStartX) * ease;
 
           if (t >= 1) {
             isSliding = false;
-            const pos = cart.x;
+            var pos = cart.x;
             if (pos >= targetZone.start && pos <= targetZone.end) {
               status2.innerHTML = '<span>Perfect！</span> 太空滑車剛好停在指定區 🎉';
             } else if (pos > targetZone.end) {
@@ -573,8 +564,8 @@
       }
 
       function loop(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        let dt = (timestamp - lastTime) / 1000;
+        if (lastTime === null) lastTime = timestamp;
+        var dt = (timestamp - lastTime) / 1000;
         if (dt > 0.03) dt = 0.03;
         lastTime = timestamp;
 
@@ -592,7 +583,7 @@
         powerValue2.textContent = '0';
         status2.textContent = '按住補充動能，放開就一次決勝負。';
 
-        chargeTimer = setInterval(() => {
+        chargeTimer = setInterval(function() {
           if (!charging) return;
           power += 2;
           if (power > 100) power = 100;
@@ -618,28 +609,37 @@
         status2.textContent = '滑動中…看看會停在哪裡。';
       }
 
-      // 滑鼠長按
-      pushBtn.addEventListener('mousedown', startCharge);
-      pushBtn.addEventListener('mouseup', stopCharge);
-      pushBtn.addEventListener('mouseleave', stopCharge);
-
-      // 觸控長按
-      pushBtn.addEventListener('touchstart', (e) => {
+      // 滑鼠
+      pushBtn.addEventListener('mousedown', function(e) {
         e.preventDefault();
         startCharge();
-      }, { passive: false });
-
-      pushBtn.addEventListener('touchend', (e) => {
+      });
+      pushBtn.addEventListener('mouseup', function(e) {
         e.preventDefault();
         stopCharge();
-      }, { passive: false });
-
-      pushBtn.addEventListener('touchcancel', (e) => {
+      });
+      pushBtn.addEventListener('mouseleave', function(e) {
         e.preventDefault();
         stopCharge();
-      }, { passive: false });
+      });
 
-      resetBtn.addEventListener('click', () => {
+      // 觸控
+      pushBtn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        startCharge();
+      }, false);
+
+      pushBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        stopCharge();
+      }, false);
+
+      pushBtn.addEventListener('touchcancel', function(e) {
+        e.preventDefault();
+        stopCharge();
+      }, false);
+
+      resetBtn.addEventListener('click', function() {
         charging = false;
         clearInterval(chargeTimer);
         power = 0;
@@ -651,8 +651,7 @@
         status2.textContent = '';
       });
 
-      // 💡 第二關提示
-      hintBtn2.addEventListener('click', () => {
+      hintBtn2.addEventListener('click', function() {
         status2.textContent = '提示：先記住一次「滑過頭」和一次「不到」的結果，再嘗試介於兩者之間的力量。';
       });
 
@@ -660,31 +659,30 @@
     })();
 
     // ==========================
-    // 第三關：彈力點燈（直線彈射＋太空背景）
+    // 第三關：彈力點燈
     // ==========================
     (function() {
-      const canvas = document.getElementById('canvas3');
-      const ctx = canvas.getContext('2d');
-      const resetBtn = document.getElementById('reset3');
-      const status3 = document.getElementById('status3');
-      const hintBtn3 = document.getElementById('hint3');
+      var canvas = document.getElementById('canvas3');
+      var ctx = canvas.getContext('2d');
+      var resetBtn = document.getElementById('reset3');
+      var status3 = document.getElementById('status3');
+      var hintBtn3 = document.getElementById('hint3');
 
-      const origin = { x: 150, y: 220 };        // 彈弓位置
-      const switchPos = { x: 520, y: 160, r: 22 }; // 開關
-      const maxPull = 160;                      // 最大拉距
-      const speedFactor = 0.015;                // 力道係數（已調整）
+      var origin = { x: 150, y: 220 };
+      var switchPos = { x: 520, y: 160, r: 22 };
+      var maxPull = 160;
+      var speedFactor = 0.015;
 
-      let ball = { x: origin.x, y: origin.y, vx: 0, vy: 0, moving: false };
-      let dragging = false;
-      let dragPos = { x: origin.x, y: origin.y };
-      let planetariumOn = false;
-      let starAlpha = 0;
-      let lastTime = null;
+      var ball = { x: origin.x, y: origin.y, vx: 0, vy: 0, moving: false };
+      var dragging = false;
+      var dragPos = { x: origin.x, y: origin.y };
+      var planetariumOn = false;
+      var starAlpha = 0;
+      var lastTime = null;
 
-      // ✅ 修正為「考慮 CSS 縮放」的座標換算，手機縮小後仍準確
       function toCanvasCoords(evt) {
-        const rect = canvas.getBoundingClientRect();
-        let clientX, clientY;
+        var rect = canvas.getBoundingClientRect();
+        var clientX, clientY;
         if (evt.touches && evt.touches.length > 0) {
           clientX = evt.touches[0].clientX;
           clientY = evt.touches[0].clientY;
@@ -693,11 +691,11 @@
           clientY = evt.clientY;
         }
 
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
+        var x = clientX - rect.left;
+        var y = clientY - rect.top;
 
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
 
         return {
           x: x * scaleX,
@@ -708,32 +706,28 @@
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 背景：星際太空 + 若已開啟天象儀再加一層星空
         drawSpaceBackground(ctx, canvas);
 
-        // 若天象儀啟動，再鋪一層更亮的星空
         if (planetariumOn) {
           if (starAlpha < 1) starAlpha += 0.02;
-          ctx.fillStyle = `rgba(15,23,42,${starAlpha * 0.4})`;
+          ctx.fillStyle = "rgba(15,23,42," + (starAlpha * 0.4) + ")";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          ctx.fillStyle = `rgba(248,250,252,${0.4 + starAlpha * 0.6})`;
-          for (let i = 0; i < 80; i++) {
-            const sx = (i * 59) % canvas.width;
-            const sy = (i * 31) % canvas.height;
+          ctx.fillStyle = "rgba(248,250,252," + (0.4 + starAlpha * 0.6) + ")";
+          for (var i = 0; i < 80; i++) {
+            var sx = (i * 59) % canvas.width;
+            var sy = (i * 31) % canvas.height;
             ctx.beginPath();
             ctx.arc(sx, sy, (i % 3) + 1, 0, Math.PI * 2);
             ctx.fill();
           }
         }
 
-        // 地面平台
         ctx.fillStyle = '#020617';
         ctx.fillRect(0, 240, canvas.width, 60);
         ctx.fillStyle = '#1f2937';
         ctx.fillRect(0, 240, canvas.width, 8);
 
-        // 彈弓支架（能量發射器）
         ctx.strokeStyle = '#f97316';
         ctx.lineWidth = 6;
         ctx.beginPath();
@@ -743,10 +737,9 @@
         ctx.lineTo(origin.x + 15, origin.y - 40);
         ctx.stroke();
 
-        // 橡皮筋：只在「拖拉中」才畫
         if (dragging) {
-          const bx = dragPos.x;
-          const by = dragPos.y;
+          var bx = dragPos.x;
+          var by = dragPos.y;
           ctx.strokeStyle = '#fde047';
           ctx.lineWidth = 3;
           ctx.beginPath();
@@ -756,7 +749,6 @@
           ctx.stroke();
         }
 
-        // 開關（啟動天象儀的按鈕）
         ctx.fillStyle = '#111827';
         ctx.fillRect(switchPos.x - 24, switchPos.y + 12, 48, 54);
         ctx.fillStyle = planetariumOn ? '#facc15' : '#9ca3af';
@@ -764,7 +756,6 @@
         ctx.arc(switchPos.x, switchPos.y, switchPos.r, 0, Math.PI * 2);
         ctx.fill();
 
-        // 能量球
         ctx.fillStyle = '#22c55e';
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, 10, 0, Math.PI * 2);
@@ -776,14 +767,12 @@
 
       function update() {
         if (ball.moving) {
-          // 直線運動
           ball.x += ball.vx;
           ball.y += ball.vy;
 
-          // 打中開關
-          const dx = ball.x - switchPos.x;
-          const dy = ball.y - switchPos.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          var dx = ball.x - switchPos.x;
+          var dy = ball.y - switchPos.y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
           if (!planetariumOn && dist <= switchPos.r + 10) {
             planetariumOn = true;
             starAlpha = 0;
@@ -791,11 +780,8 @@
             status3.innerHTML = '<span>成功！</span> 你啟動了星際天象儀，滿天星光亮起來了 ✨';
           }
 
-          // 飛出畫面就停止
-          if (
-            ball.x < -50 || ball.x > canvas.width + 50 ||
-            ball.y < -50 || ball.y > canvas.height + 50
-          ) {
+          if (ball.x < -50 || ball.x > canvas.width + 50 ||
+              ball.y < -50 || ball.y > canvas.height + 50) {
             ball.moving = false;
             if (!planetariumOn) {
               status3.textContent = '沒有打中開關，再試一次。';
@@ -805,7 +791,7 @@
       }
 
       function loop(timestamp) {
-        if (!lastTime) lastTime = timestamp;
+        if (lastTime === null) lastTime = timestamp;
         lastTime = timestamp;
 
         update();
@@ -823,12 +809,11 @@
         status3.textContent = '';
       }
 
-      // ---- 拖曳 & 發射：一定要按在球上 ----
       function handleDown(evt) {
-        const pos = toCanvasCoords(evt);
-        const dx = pos.x - ball.x;
-        const dy = pos.y - ball.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        var pos = toCanvasCoords(evt);
+        var dx = pos.x - ball.x;
+        var dy = pos.y - ball.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist <= 14 && !ball.moving) {
           dragging = true;
@@ -839,13 +824,13 @@
 
       function handleMove(evt) {
         if (!dragging) return;
-        const pos = toCanvasCoords(evt);
-        let dx = pos.x - origin.x;
-        let dy = pos.y - origin.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
+        var pos = toCanvasCoords(evt);
+        var dx = pos.x - origin.x;
+        var dy = pos.y - origin.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > maxPull) {
-          const r = maxPull / dist;
+          var r = maxPull / dist;
           dx *= r;
           dy *= r;
           dist = maxPull;
@@ -863,9 +848,9 @@
         if (!dragging) return;
         dragging = false;
 
-        const dx = dragPos.x - origin.x;
-        const dy = dragPos.y - origin.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        var dx = dragPos.x - origin.x;
+        var dy = dragPos.y - origin.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < 10) {
           ball.x = origin.x;
@@ -873,7 +858,6 @@
           return;
         }
 
-        // 方向反向，拉越遠速度越快
         ball.x = origin.x;
         ball.y = origin.y;
         ball.vx = -dx * speedFactor;
@@ -883,42 +867,41 @@
         status3.textContent = '發射！試試看能不能剛好擊中開關。';
       }
 
-      // 💡 第三關提示
-      hintBtn3.addEventListener('click', () => {
+      hintBtn3.addEventListener('click', function() {
         status3.textContent = '提示：先觀察開關的位置，再從能量球往「相反方向」拉，角度對了再調整拉多遠。';
       });
 
       // 滑鼠
-      canvas.addEventListener('mousedown', (e) => {
+      canvas.addEventListener('mousedown', function(e) {
         e.preventDefault();
         handleDown(e);
       });
-      canvas.addEventListener('mousemove', (e) => {
+      canvas.addEventListener('mousemove', function(e) {
         e.preventDefault();
         handleMove(e);
       });
-      window.addEventListener('mouseup', (e) => {
+      window.addEventListener('mouseup', function(e) {
         e.preventDefault();
         handleUp();
       });
 
       // 觸控
-      canvas.addEventListener('touchstart', (e) => {
+      canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
         handleDown(e);
-      }, { passive: false });
-      canvas.addEventListener('touchmove', (e) => {
+      }, false);
+      canvas.addEventListener('touchmove', function(e) {
         e.preventDefault();
         handleMove(e);
-      }, { passive: false });
-      window.addEventListener('touchend', (e) => {
+      }, false);
+      window.addEventListener('touchend', function(e) {
         e.preventDefault();
         handleUp();
-      }, { passive: false });
-      window.addEventListener('touchcancel', (e) => {
+      }, false);
+      window.addEventListener('touchcancel', function(e) {
         e.preventDefault();
         handleUp();
-      }, { passive: false });
+      }, false);
 
       resetBtn.addEventListener('click', resetGame);
 
